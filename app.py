@@ -122,7 +122,10 @@ if uploaded_file:
             # Preview
             b64_preview = base64.b64encode(merged_bytes).decode("utf-8")
             st.markdown(
-                f'<iframe src="data:applicat
-        
+                f'<iframe src="data:application/pdf;base64,{b64_preview}" width="100%" height="600px"></iframe>',
+                unsafe_allow_html=True
+            )
+            
                     
                                 
+                                            
