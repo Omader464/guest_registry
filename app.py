@@ -43,6 +43,9 @@ def extract_guests(file):
 # Helper: Fill reg card
 def fill_pdf(template_path, guest_data):
     packet = BytesIO()
+    can = canvas.Canvas(packet, pagesize=letter)
+
+    # Adjusted positions based on visual alignment
     can.drawString(130, 680, guest_data['last_name'])        # Last Name
     can.drawString(130, 660, guest_data['name'])             # Name
     can.drawString(130, 640, guest_data['phone'])            # Tel.
@@ -52,14 +55,17 @@ def fill_pdf(template_path, guest_data):
     can.drawString(130, 560, guest_data['check_in'])         # Check In
     can.drawString(250, 560, "06/08/25")                     # Check Out
     can.drawString(130, 540, guest_data['nights'])           # N Nights
+
     can.save()
     packet.seek(0)
+
     new_pdf = PdfReader(packet)
     existing_pdf = PdfReader(open(template_path, "rb"))
     output = PdfWriter()
     page = existing_pdf.pages[0]
     page.merge_page(new_pdf.pages[0])
     output.add_page(page)
+
     result = BytesIO()
     output.write(result)
     result.seek(0)
