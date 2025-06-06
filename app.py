@@ -100,15 +100,25 @@ if uploaded_file:
         # Merged PDF output
         if all_pdfs:
             st.markdown("### 🗂️ Merged Registration Cards PDF")
-            merged = generate_merged_pdf(all_pdfs)
-            b64_merged = base64.b64encode(merged.read()).decode("utf-8")
-            merged.seek(0)
+           
             
-st.download_button("📄 Download All as Single PDF", data=merged, file_name="All_RegCards.pdf", mime="application/pdf")
-b64_preview = base64.b64encode(merged.read()).decode("utf-8")
-merged.seek(0)
+# Create merged PDF stream
+merged_pdf = generate_merged_pdf(all_pdfs)
+
+# Show download button
+st.download_button(
+    "📄 Download All as Single PDF",
+    data=merged_pdf,
+    file_name="All_RegCards.pdf",
+    mime="application/pdf"
+)
+
+# Preview in iframe
+b64_preview = base64.b64encode(merged_pdf.read()).decode("utf-8")
+merged_pdf.seek(0)
 st.markdown(
     f'<iframe src="data:application/pdf;base64,{b64_preview}" width="100%" height="600px"></iframe>',
     unsafe_allow_html=True
 )
+
 
