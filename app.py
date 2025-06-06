@@ -16,19 +16,24 @@ TEMPLATE_PATH = "Reg Card Palacio copy.pdf"
 def extract_guests(file):
     guests = []
     with pdfplumber.open(file) as pdf:
-        lines = []
+        all_lines = []
         for page in pdf.pages:
             text = page.extract_text()
             if text:
-                lines.extend(text.splitlines())
+                all_lines += text.splitlines()
 
-    for i, line in enumerate(lines):
+    for i in range(len(all_lines)):
+        line = all_lines[i]
         if "Not Arrived" in line and "," in line:
             try:
-                name_part = line.split("Not Arrived")[0].strip()
-                last_name, first_name = map(str.strip, name_part.split(",", 1))
-                city = lines[i + 1].strip()
-                check_in = lines[i + 2].strip()
+                name_raw = line.split("Not Arrived")[0].strip()
+                if "," not in name_raw:
+                    continue  # skip malformed names
+                last_name, first_name = map(str.strip, name_raw.split(",", 1))
+
+                # Get next non-empty lines for city and date
+                city = next((l.strip() for l in all_lines[i+1:i+4] if l.strip()), "Unknown")
+                check_in = next((l.strip() for l in all_lines[i+2:i+5] if "/" in l), "00/00/0000")
 
                 guests.append({
                     "display_name": f"{last_name}, {first_name}",
@@ -39,9 +44,12 @@ def extract_guests(file):
                     "nights": "3",
                     "phone": "N/A"
                 })
-            except Exception:
+            except Exception as e:
+                print(f"Error parsing guest at line {i}: {e}")
                 continue
+
     return guests
+
 
 # ✍️ Fill a registration card
 def fill_pdf(template_path, guest_data):
