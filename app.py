@@ -14,12 +14,12 @@ uploaded_file = st.file_uploader("Upload CRM Guest Report (PDF)", type=["pdf"])
 
 TEMPLATE_PATH = "Reg Card Palacio copy.pdf"
 
-# Extract guest blocks more reliably using patterns
+# Extract guest blocks using regex
 def extract_guests(file):
     guests = []
     with pdfplumber.open(file) as pdf:
         text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
-        entries = re.findall(r"([A-Z\-']+,\s[A-Z\s]+)\s+Not Arrived.*?\n(.*?)\n(\d{{2}}/\d{{2}}/\d{{4}})", text)
+        entries = re.findall(r"([A-Z\\-']+,\\s[A-Z\\s]+)\\s+Not Arrived.*?\\n(.*?)\\n(\\d{2}/\\d{2}/\\d{4})", text)
         for entry in entries:
             full_name, city, checkin = entry
             last, first = map(str.strip, full_name.split(","))
@@ -34,10 +34,11 @@ def extract_guests(file):
             })
     return guests
 
+# Create filled registration card PDF
 def fill_pdf(template_path, guest_data):
     packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=letter)
-    # Adjusted Y positions for better alignment
+
     can.drawString(130, 700, guest_data['last_name'])
     can.drawString(130, 680, guest_data['name'])
     can.drawString(130, 660, guest_data['phone'])
@@ -47,6 +48,7 @@ def fill_pdf(template_path, guest_data):
     can.drawString(130, 580, guest_data['check_in'])
     can.drawString(250, 580, "06/08/25")
     can.drawString(130, 560, guest_data['nights'])
+
     can.save()
     packet.seek(0)
 
@@ -62,6 +64,7 @@ def fill_pdf(template_path, guest_data):
     result.seek(0)
     return result
 
+# Download button (individual)
 def render_pdf_buttons(pdf_bytes, filename):
     b64 = base64.b64encode(pdf_bytes.read()).decode('utf-8')
     pdf_bytes.seek(0)
@@ -71,9 +74,10 @@ def render_pdf_buttons(pdf_bytes, filename):
     </a>
     """
 
-def generate_merged_pdf(all_pdfs):
+# Merge all PDFs into one
+def generate_merged_pdf(pdf_list):
     merger = PdfMerger()
-    for pdf in all_pdfs:
+    for pdf in pdf_list:
         pdf.seek(0)
         merger.append(pdf)
     output = BytesIO()
@@ -82,13 +86,14 @@ def generate_merged_pdf(all_pdfs):
     output.seek(0)
     return output
 
+# === MAIN APP LOGIC ===
 if uploaded_file:
     guests = extract_guests(uploaded_file)
+
     if not guests:
         st.warning("No valid guests found.")
     else:
         st.success(f"Found {len(guests)} guests. Generating cards...")
-        st.markdown("---")
         all_pdfs = []
 
         for guest in guests:
@@ -97,28 +102,25 @@ if uploaded_file:
             with st.expander(f"🧾 {guest['display_name']}"):
                 st.markdown(render_pdf_buttons(pdf, f"RegCard_{guest['last_name']}.pdf"), unsafe_allow_html=True)
 
-        # Merged PDF output
+        # Merged PDF output section
         if all_pdfs:
             st.markdown("### 🗂️ Merged Registration Cards PDF")
-           
-            
-# Create merged PDF stream
-merged_pdf = generate_merged_pdf(all_pdfs)
 
-# Show download button
-st.download_button(
-    "📄 Download All as Single PDF",
-    data=merged_pdf,
-    file_name="All_RegCards.pdf",
-    mime="application/pdf"
-)
+            # Create and serve merged PDF
+            merged_pdf = generate_merged_pdf(all_pdfs)
 
-# Preview in iframe
-b64_preview = base64.b64encode(merged_pdf.read()).decode("utf-8")
-merged_pdf.seek(0)
-st.markdown(
-    f'<iframe src="data:application/pdf;base64,{b64_preview}" width="100%" height="600px"></iframe>',
-    unsafe_allow_html=True
-)
+            # Download button
+            st.download_button(
+                "📄 Download All as Single PDF",
+                data=merged_pdf,
+                file_name="All_RegCards.pdf",
+                mime="application/pdf"
+            )
 
-
+            # Live preview of merged PDF
+            b64_preview = base64.b64encode(merged_pdf.read()).decode("utf-8")
+            merged_pdf.seek(0)
+            st.markdown(
+                f'<iframe src="data:application/pdf;base64,{b64_preview}" width="100%" height="600px"></iframe>',
+                unsafe_allow_html=True
+            )
