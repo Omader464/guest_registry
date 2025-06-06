@@ -106,21 +106,21 @@ if uploaded_file:
         if all_pdfs:
             st.markdown("### 🗂️ Merged Registration Cards PDF")
 
-            # Create and serve merged PDF
             merged_pdf = generate_merged_pdf(all_pdfs)
+merged_bytes = merged_pdf.read()
 
-            # Download button
-            st.download_button(
-                "📄 Download All as Single PDF",
-                data=merged_pdf,
-                file_name="All_RegCards.pdf",
-                mime="application/pdf"
-            )
+# Download button with raw bytes
+st.download_button(
+    "📄 Download All as Single PDF",
+    data=merged_bytes,
+    file_name="All_RegCards.pdf",
+    mime="application/pdf"
+)
 
-            # Live preview of merged PDF
-            b64_preview = base64.b64encode(merged_pdf.read()).decode("utf-8")
-            merged_pdf.seek(0)
-            st.markdown(
-                f'<iframe src="data:application/pdf;base64,{b64_preview}" width="100%" height="600px"></iframe>',
-                unsafe_allow_html=True
-            )
+# Preview with base64
+b64_preview = base64.b64encode(merged_bytes).decode("utf-8")
+st.markdown(
+    f'<iframe src="data:application/pdf;base64,{b64_preview}" width="100%" height="600px"></iframe>',
+    unsafe_allow_html=True
+)
+
