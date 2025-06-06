@@ -43,16 +43,15 @@ def extract_guests(file):
 # Helper: Fill reg card
 def fill_pdf(template_path, guest_data):
     packet = BytesIO()
-    can = canvas.Canvas(packet, pagesize=letter)
-    can.drawString(130, 475, guest_data['last_name'])
-    can.drawString(130, 455, guest_data['name'])
-    can.drawString(130, 435, guest_data['phone'])
-    can.drawString(130, 415, "00901")
-    can.drawString(130, 395, "United States - US")
-    can.drawString(130, 375, guest_data['name'].lower() + "@email.com")
-    can.drawString(130, 355, guest_data['check_in'])
-    can.drawString(130, 335, "06/08/25")
-    can.drawString(130, 315, guest_data['nights'])
+    can.drawString(130, 680, guest_data['last_name'])        # Last Name
+    can.drawString(130, 660, guest_data['name'])             # Name
+    can.drawString(130, 640, guest_data['phone'])            # Tel.
+    can.drawString(130, 620, "00901")                        # Zip Code
+    can.drawString(130, 600, "United States - US")           # Country
+    can.drawString(130, 580, guest_data['name'].lower() + "@email.com")  # Email
+    can.drawString(130, 560, guest_data['check_in'])         # Check In
+    can.drawString(250, 560, "06/08/25")                     # Check Out
+    can.drawString(130, 540, guest_data['nights'])           # N Nights
     can.save()
     packet.seek(0)
     new_pdf = PdfReader(packet)
