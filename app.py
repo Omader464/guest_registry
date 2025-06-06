@@ -5,7 +5,6 @@ from PyPDF2 import PdfReader, PdfWriter, PdfMerger
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 import base64
-import re
 
 st.set_page_config(page_title="Reg Card Generator", layout="wide")
 st.title("📋 Guest Registration Card Generator")
@@ -13,29 +12,42 @@ st.title("📋 Guest Registration Card Generator")
 uploaded_file = st.file_uploader("Upload CRM Guest Report (PDF)", type=["pdf"])
 TEMPLATE_PATH = "Reg Card Palacio copy.pdf"
 
-# Extract guest entries safely using corrected regex
+# 🧠 Guest extraction logic based on your CRM format
 def extract_guests(file):
     guests = []
     with pdfplumber.open(file) as pdf:
-        text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
-        entries = re.findall(r"([A-Z' \-]+,\s[A-Z\s]+)\s+Not Arrived.*?\n(.*?)\n(\d{2}/\d{2}/\d{4})", text)
-        for full_name, city, checkin in entries:
-            last, first = map(str.strip, full_name.split(","))
-            guests.append({
-                "display_name": f"{last}, {first}",
-                "last_name": last,
-                "name": first,
-                "city": city.strip(),
-                "check_in": checkin,
-                "nights": "3",
-                "phone": "N/A"
-            })
+        lines = []
+        for page in pdf.pages:
+            text = page.extract_text()
+            if text:
+                lines.extend(text.splitlines())
+
+    for i, line in enumerate(lines):
+        if "Not Arrived" in line and "," in line:
+            try:
+                name_part = line.split("Not Arrived")[0].strip()
+                last_name, first_name = map(str.strip, name_part.split(",", 1))
+                city = lines[i + 1].strip()
+                check_in = lines[i + 2].strip()
+
+                guests.append({
+                    "display_name": f"{last_name}, {first_name}",
+                    "last_name": last_name,
+                    "name": first_name,
+                    "city": city,
+                    "check_in": check_in,
+                    "nights": "3",
+                    "phone": "N/A"
+                })
+            except Exception:
+                continue
     return guests
 
-# Fill in the registration card template
+# ✍️ Fill a registration card
 def fill_pdf(template_path, guest_data):
     packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=letter)
+
     can.drawString(130, 700, guest_data['last_name'])
     can.drawString(130, 680, guest_data['name'])
     can.drawString(130, 660, guest_data['phone'])
@@ -45,6 +57,7 @@ def fill_pdf(template_path, guest_data):
     can.drawString(130, 580, guest_data['check_in'])
     can.drawString(250, 580, "06/08/25")
     can.drawString(130, 560, guest_data['nights'])
+
     can.save()
     packet.seek(0)
 
@@ -60,7 +73,7 @@ def fill_pdf(template_path, guest_data):
     result.seek(0)
     return result
 
-# Render download button for individual guest card
+# 💾 Individual download button
 def render_pdf_buttons(pdf_bytes, filename):
     b64 = base64.b64encode(pdf_bytes.read()).decode('utf-8')
     pdf_bytes.seek(0)
@@ -70,7 +83,7 @@ def render_pdf_buttons(pdf_bytes, filename):
     </a>
     """
 
-# Merge all individual PDFs
+# 📄 Merge all guest PDFs
 def generate_merged_pdf(pdf_list):
     merger = PdfMerger()
     for pdf in pdf_list:
@@ -82,7 +95,7 @@ def generate_merged_pdf(pdf_list):
     output.seek(0)
     return output
 
-# === MAIN APP ===
+# 🚀 Main app logic
 if uploaded_file:
     guests = extract_guests(uploaded_file)
 
@@ -98,14 +111,14 @@ if uploaded_file:
             with st.expander(f"🧾 {guest['display_name']}"):
                 st.markdown(render_pdf_buttons(pdf, f"RegCard_{guest['last_name']}.pdf"), unsafe_allow_html=True)
 
-        # Merged PDF output section
+        # 📎 Merged PDF Section
         if all_pdfs:
             st.markdown("### 🗂️ Merged Registration Cards PDF")
 
             merged_pdf = generate_merged_pdf(all_pdfs)
             merged_bytes = merged_pdf.read()
 
-            # Download
+            # 📥 Download merged
             st.download_button(
                 "📄 Download All as Single PDF",
                 data=merged_bytes,
@@ -113,7 +126,7 @@ if uploaded_file:
                 mime="application/pdf"
             )
 
-            # Preview
+            # 👁️ Preview merged
             b64_preview = base64.b64encode(merged_bytes).decode("utf-8")
             st.markdown(
                 f'<iframe src="data:application/pdf;base64,{b64_preview}" width="100%" height="600px"></iframe>',
